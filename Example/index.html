@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+  <title>Cesium Viewer</title>
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="CesiumViewer/CesiumViewer.css" media="screen" />
+</head>
+
+<body style="background: #000;">
+  <div id="cesiumContainer" class="fullWindow"></div>
+  <script src="../Build/Cesium/Cesium.js"></script>
+  <script type="module">
+    
+    import MapboxVectorTileImageryProvider from '../node_modules/@robbo1975/index.js';
+
+    var mapbox = new MapboxVectorTileImageryProvider({
+      url: 'https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer/tile/{z}/{y}/{x}.pbf',
+      styleUrl: 'https://www.arcgis.com/sharing/rest/content/items/3e1a00aeae81496587988075fe529f71/resources/styles/root.json'
+    });
+    // //https://basemaps.arcgis.com/arcgis/rest/services/OpenStreetMap_v2/VectorTileServer/tile/12/1362/2046.pbf
+    // //https://cdn.arcgis.com/sharing/rest/content/items/3e1a00aeae81496587988075fe529f71/resources/sprites/sprite.json
+    // //https://cdn.arcgis.com/sharing/rest/content/items/7dc6cea0b1764a1f9af2e679f642f0f5/resources/styles/root.json
+    // //https://www.arcgis.com/sharing/rest/content/items/3e1a00aeae81496587988075fe529f71/resources/styles/root.json?f=json
+    
+    var viewer = new Cesium.Viewer("cesiumContainer", {
+      imageryProvider: mapbox
+    });
+
+
+  </script>
+</body>
+
+</html>
