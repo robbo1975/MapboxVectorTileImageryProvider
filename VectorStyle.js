@@ -69,25 +69,27 @@ VectorStyle.prototype._loadJsonStyle = function (resource) {
     });
 }
 
-VectorStyle.prototype.drawTile = function (canvas, tile, nativeTile, requestedTile) {
+var extentFactor;
+VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, requestedTile) {
 
     var layers = Object.keys(tile.layers);
     var styles = Object.keys(this._styleLayers);
-    var context = canvas.getContext("2d");
 
-    // canvas.width = canvas.width * 2;
-    // canvas.height = canvas.height * 2;
-    // canvas.style.width = canvas.width / 2;
-    // canvas.style.height = canvas.height / 2;
-    // context.scale(2,2);
     //fix blur
     //TODO: I think some of the blur is down to the zoom interpolation and also scaling the 'stops' against the metric
-    var scale = window.devicePixelRatio;
-    // canvas.width = canvas.width * scale;
-    // canvas.height = canvas.height * scale;
-    // context.scale(scale, scale);
-    canvas.setAttribute('width', canvas.height * scale);
-    canvas.setAttribute('height', canvas.width * scale);
+    var canvas = document.createElement("canvas");
+    var scale = 2;
+    canvas.width = origCanvas.width * scale;
+    canvas.height = origCanvas.height * scale;
+    var context = canvas.getContext('2d'); // an offscreen canvas
+    var origContext = origCanvas.getContext("2d");
+
+    var ratio = window.devicePixelRatio;
+    canvas.width = canvas.width * ratio;
+    canvas.height = canvas.height * ratio;
+    context.scale(ratio, ratio);
+    var transVal = 0.5;
+    context.translate(transVal, transVal);
 
     //loop over styles (to get correct order of layers)
     for (var l = 0; l < styles.length; l++) {
@@ -98,35 +100,33 @@ VectorStyle.prototype.drawTile = function (canvas, tile, nativeTile, requestedTi
                 this._backgroundColor = jStyle.paint["background-color"];
             }
         }
-        //context.fillRect(0,0,256,256);
 
         canvas.style.background = this._backgroundColor;
-        //context.fillStyle = this._backgroundColor;
-
-        //context.stroke();
 
         context.fillStyle = this._backgroundColor;
         if ("layout" in jStyle && "visibility" in jStyle.layout && jStyle.layout.visibility === "none") {
-            context.fillRect(0, 0, 256, 256);
+            context.fillRect(0, 0, canvas.width, canvas.height);
             continue;
         }
 
         //current style not in layers
         if (!(jStyle["source-layer"] in tile.layers)) continue;
+        
         //get layer based on style
         var layer = tile.layers[jStyle["source-layer"]];
 
         if (!defined(layer)) {
-            return canvas; // return blank canvas for blank tile
+            return; // return blank canvas for blank tile
         }
 
-        var extentFactor = canvas.width / layer.extent; // Vector tile works with extent [0, 4095], but canvas is only [0,255]
+        extentFactor = canvas.width / layer.extent; // Vector tile works with extent [0, 4095], but canvas is only [0,255]
 
         //if styles' specified zoom levels are not within current zoom, move to next style layer
         if ("minzoom" in jStyle && nativeTile.level < parseInt(jStyle.minzoom)) { continue; }
         if ("maxzoom" in jStyle && nativeTile.level >= parseInt(jStyle.maxzoom)) { continue; }
 
         var textLabel = "";
+
 
         context.lineJoin = "miter";
         context.lineCap = "butt";
@@ -182,12 +182,12 @@ VectorStyle.prototype.drawTile = function (canvas, tile, nativeTile, requestedTi
         //context.font = ["16px Open Sans Regular","Arial Unicode MS Regular"];
         var fontsize = "16";
         var font = "Arial Unicode MS Regular";
-        if (defined(textSize)) fontsize = textSize;
+        if (defined(textSize)) fontsize = parseInt(textSize);
         if (defined(textFont)) font = textFont[0];
         fontsize = fontsize + "px";
         font = fontsize + " " + font;
         context.font = font;
-        //console.log(font);
+        //TODO: implement extraction of relevant value
         context.textAlign = "center";
         context.textBaseline = "top";
 
@@ -195,20 +195,17 @@ VectorStyle.prototype.drawTile = function (canvas, tile, nativeTile, requestedTi
         if (defined(textField)) {
             //if ("layout" in jStyle && "symbol-placement" in jStyle.layout && jStyle.layout["symbol-placement"] === "line") return;
             textField = textField.replace("{", "");
-            textField = textField.replace("}", "");
-            //TODO: implement extraction of relevant value
+            textField = textField.replace("}", "");            
             //TODO: these may override colours for lines/fills!
             context.fillStyle = textColor;
             context.strokeStyle = textColor;
         }
 
-        //context.translate(0.5, 0.5);
 
         // Features
         //loop through each feature within the layer
         for (var i = 0; i < layer.length; i++) {
             canvas.style.background = this._backgroundColor;
-
 
             var feature = layer.feature(i);
 
@@ -226,21 +223,17 @@ VectorStyle.prototype.drawTile = function (canvas, tile, nativeTile, requestedTi
             //if ("_maxzoom" in feature.properties && nativeTile.level >= parseInt(feature.properties._maxzoom)) { continue; }
 
             var label = undefined;
-            //console.log(textField);
-            //console.log(feature.properties);
-            if (defined(feature.properties[textField])) label = feature.properties[textField];
-            //console.log(feature.properties);
 
-            //only process known feature types
-            //if (feature.type > UNKNOWN_FEATURE) {
+            if (defined(feature.properties[textField])) label = feature.properties[textField];
+
             var coordinates = getCoordinates(nativeTile, requestedTile, layer, feature);
             if (!defined(coordinates)) {
                 continue;
             }
 
-            //context.translate(0.5, 0.5);//TODO: maybe can be removed - fix in main method
-
-            //TODO: selection based on feature type, but I suspect that it should be fully driven from the style
+            
+            context.translate(transVal, transVal);
+            
             switch (jStyle.type) {
                 case "fill":
                     drawPath(context, extentFactor, coordinates);
@@ -256,13 +249,16 @@ VectorStyle.prototype.drawTile = function (canvas, tile, nativeTile, requestedTi
                     context.globalAlpha = 1.0;
                     break;
                 case "symbol":
+
                     if (defined(label)) drawSpriteAndText(context, extentFactor, coordinates, label, this._sprites[iconImage])
                     break;
             }
-
+            context.translate(-transVal, -transVal);
         }
-        //context.translate(-0.5, -0.5);
+
     }
+    
+    origContext.drawImage(canvas, 0, 0, origCanvas.width, origCanvas.height);
 
 };
 
@@ -295,40 +291,40 @@ function getCoordinates(nativeTile, requestedTile, layer, feature) {
     //TODO: not sure what the purpose of the over-zoom feature is - this was in the original implementation
     //and appears to mess up the tile alignment and artifcially increase the zoom by bloating all of the shapes
 
-    // if (nativeTile.level !== requestedTile.level) {
-    //     // Overzoom feature
-    //     var bbox = feature.bbox(); // [w, s, e, n] bounding box
-    //     var featureRect = new BoundingRectangle(
-    //         bbox[0],
-    //         bbox[1],
-    //         bbox[2] - bbox[0],
-    //         bbox[3] - bbox[1]
-    //     );
-    //     var levelDelta = requestedTile.level - nativeTile.level;
-    //     var size = layer.extent >> levelDelta;
-    //     if (size < 16) {
-    //         // Tile has less less detail than 16x16
-    //         throw new DeveloperError(("maxLevelError"));
-    //     }
-    //     var x1 = size * (requestedTile.x - (nativeTile.x << levelDelta)); //
-    //     var y1 = size * (requestedTile.y - (nativeTile.y << levelDelta));
-    //     var tileRect = new BoundingRectangle(x1, y1, size, size);
-    //     extentFactor = canvas.width / size;
-    //     if (
-    //         BoundingRectangle.intersect(featureRect, tileRect) ===
-    //         Intersect.OUTSIDE
-    //     ) {
-    //         return undefined;
-    //     }
-    //     coordinates = overzoomGeometry(
-    //         feature.loadGeometry(),
-    //         nativeTile,
-    //         size,
-    //         requestedTile
-    //     );
-    // } else {
-    coordinates = feature.loadGeometry();
-    // }
+    if (nativeTile.level !== requestedTile.level) {
+        // Overzoom feature
+        var bbox = feature.bbox(); // [w, s, e, n] bounding box
+        var featureRect = new BoundingRectangle(
+            bbox[0],
+            bbox[1],
+            bbox[2] - bbox[0],
+            bbox[3] - bbox[1]
+        );
+        var levelDelta = requestedTile.level - nativeTile.level;
+        var size = layer.extent >> levelDelta;
+        if (size < 16) {
+            // Tile has less less detail than 16x16
+            throw new DeveloperError(("maxLevelError"));
+        }
+        var x1 = size * (requestedTile.x - (nativeTile.x << levelDelta)); //
+        var y1 = size * (requestedTile.y - (nativeTile.y << levelDelta));
+        var tileRect = new BoundingRectangle(x1, y1, size, size);
+        extentFactor = canvas.width / size;console.log(extentFactor);
+        if (
+            BoundingRectangle.intersect(featureRect, tileRect) ===
+            Intersect.OUTSIDE
+        ) {
+            return undefined;
+        }
+        coordinates = overzoomGeometry(
+            feature.loadGeometry(),
+            nativeTile,
+            size,
+            requestedTile
+        );
+    } else {
+        coordinates = feature.loadGeometry();
+    }
     return coordinates;
 }
 
@@ -471,20 +467,28 @@ function drawSpriteAndText(context, extentFactor, coordinates, text, image) {
 
 //function used to draw an image on the canvas
 //this must be drawn offscreen in order to maintain alpha transparency
-function drawSprite(context, extentFactor, xPos, yPos, image) {
-    var canvas = document.createElement("CANVAS");
-    const offCtx = canvas.cloneNode().getContext('2d'); // an offscreen canvas
+function drawSprite(context, extentFactor, xPos, yPos, image) {    
+    var offscreen = document.createElement("canvas");
+    offscreen.width = image.width;
+    offscreen.height = image.height;
+    var offCtx = offscreen.getContext('2d'); // an offscreen canvas
+
+    offCtx.globalAlpha = 0.0;
+    offCtx.clearRect(0, 0, image.width, image.height);
     offCtx.putImageData(image, 0, 0);
     //draw on main canvas (putimage will lose alpha)
-    context.drawImage(offCtx.canvas, xPos - offCtx.canvas.width / 2 * extentFactor, yPos - offCtx.canvas.height / 2 * extentFactor);
+    context.drawImage(offCtx.canvas, (xPos * extentFactor), (yPos * extentFactor), image.width, image.height);
 }
 
-//TODO: not working
 function getFillPattern(context, image) {
     if (!defined(image)) return undefined;
 
-    var offscreen = new OffscreenCanvas(image.width, image.height);
+    //var offscreen = new OffscreenCanvas(image.width, image.height);
+    var offscreen = document.createElement("canvas");
+    offscreen.width = image.width;
+    offscreen.height = image.height;
     var offcontext = offscreen.getContext('2d');
+
     offcontext.putImageData(image, 0, 0);
     var pattern = context.createPattern(offscreen, 'repeat');
     return pattern;
