@@ -9,7 +9,9 @@ A Mapbox Styled Vector Tile plugin for the Cesium map client.  Please note that 
 ![MapboxVectorTileImageryProvider](/img/image4.png)
 
 ## Installation
-
+  
+  I have not yet created an NPM package as I do not feel that it is yet mature enough.  For now you can just check out my source code into CESIUM's node_modules folder and run from there, or if using a release build of CESIUM, check out into the BUILD folder.
+  
   //TODO: 
   `npm install @robbo1975/MapboxVectorTileImageryProvider`
 
