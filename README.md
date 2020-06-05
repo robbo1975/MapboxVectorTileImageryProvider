@@ -1,7 +1,7 @@
 MapboxVectorTileImageryProvider
 ===============================
 
-A plugin for Cesium map client
+A Mapbox Styled Vector Tile plugin for the Cesium map client.  Please note that this project is in the very early stages of development.  Please get in touch if you feel as though you can contribute.  Javascript is not my first language and I am not an expert in Spatial systems or Cesium.
 
 ![MapboxVectorTileImageryProvider](/img/image1.png)
 ![MapboxVectorTileImageryProvider](/img/image2.png)
@@ -33,3 +33,4 @@ A plugin for Cesium map client
   `npm test`
 
 ## Contributing
+Please contact me at robbo.blah@gmail.com

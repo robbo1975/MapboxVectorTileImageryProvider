@@ -30,6 +30,18 @@
     var viewer = new Cesium.Viewer("cesiumContainer", {
       imageryProvider: mapbox
     });
+    
+    var osm = new Cesium.UrlTemplateImageryProvider({
+      url: 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      resolutionScale : 2.0//improve resolution
+    });
+    viewer.scene.globe.maximumScreenSpaceError = 1.0;//improve resolution
+
+    //overlay the streetmap raster data for comparison
+    // var layers = viewer.scene.imageryLayers;
+    // var layer = layers.addImageryProvider(osm);
+    // layer.alpha = 0.3;
+
 
 
   </script>

@@ -230,40 +230,40 @@ MapboxVectorTileImageryProvider.prototype.initialize = function (options) {
     that._pickFeaturesTags = allPickFeaturesTags;
 
     //TILES
-    that._tilingScheme = new Cesium.WebMercatorTilingScheme();
+    that._tilingScheme = new WebMercatorTilingScheme();
 
     that._tileWidth = 256;
     that._tileHeight = 256;
 
-    that._minimumLevel = Cesium.defaultValue(options.minimumZoom, 0);
-    that._maximumLevel = Cesium.defaultValue(options.maximumZoom, Infinity);
-    that._maximumNativeLevel = Cesium.defaultValue(
-      options.maximumNativeZoom,
+    that._minimumLevel = defaultValue(properties.minimumZoom, 0);
+    that._maximumLevel = defaultValue(properties.maximumZoom, Infinity);
+    that._maximumNativeLevel = defaultValue(
+      properties.maximumNativeZoom,
       that._maximumLevel
     );
 
-    that._rectangle = Cesium.defined(options.rectangle)
-      ? Rectangle.intersection(options.rectangle, that._tilingScheme.rectangle)
+    that._rectangle = defined(properties.rectangle)
+      ? Rectangle.intersection(properties.rectangle, that._tilingScheme.rectangle)
       : that._tilingScheme.rectangle;
-    that._uniqueIdProp = options.uniqueIdProp;
-    that._featureInfoFunc = options.featureInfoFunc;
+    that._uniqueIdProp = properties.uniqueIdProp;
+    that._featureInfoFunc = properties.featureInfoFunc;
     //this._featurePicking = options.featurePicking;
 
     // Check the number of tiles at the minimum level.  If it's more than four,
     // throw an exception, because starting at the higher minimum
     // level will cause too many tiles to be downloaded and rendered.
     var swTile = that._tilingScheme.positionToTileXY(
-      Cesium.Rectangle.southwest(that._rectangle),
+      Rectangle.southwest(that._rectangle),
       that._minimumLevel
     );
     var neTile = that._tilingScheme.positionToTileXY(
-      Cesium.Rectangle.northeast(that._rectangle),
+      Rectangle.northeast(that._rectangle),
       that._minimumLevel
     );
     var tileCount =
       (Math.abs(neTile.x - swTile.x) + 1) * (Math.abs(neTile.y - swTile.y) + 1);
     if (tileCount > 4) {
-      throw new Cesium.DeveloperError(
+      throw new DeveloperError(
         ("map.mapboxVectorTileImageryProvider.moreThanFourTiles", {
           tileCount: tileCount
         })

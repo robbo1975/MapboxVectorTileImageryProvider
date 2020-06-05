@@ -70,15 +70,19 @@ VectorStyle.prototype._loadJsonStyle = function (resource) {
 }
 
 var extentFactor;
-VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, requestedTile) {
-
+VectorStyle.prototype.drawTile = function (origCanvas, tile, nTile, rTile) {
+     var nativeTile = nTile;
+     var requestedTile = rTile;
+     nativeTile.level = nTile.level -0;
+     requestedTile.level = rTile.level -0;
+//console.log(nativeTile.level + " " + requestedTile.level);
     var layers = Object.keys(tile.layers);
     var styles = Object.keys(this._styleLayers);
 
     //fix blur
     //TODO: I think some of the blur is down to the zoom interpolation and also scaling the 'stops' against the metric
     var canvas = document.createElement("canvas");
-    var scale = 2;
+    var scale = 1.0;
     canvas.width = origCanvas.width * scale;
     canvas.height = origCanvas.height * scale;
     var context = canvas.getContext('2d'); // an offscreen canvas
@@ -88,7 +92,7 @@ VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, request
     canvas.width = canvas.width * ratio;
     canvas.height = canvas.height * ratio;
     context.scale(ratio, ratio);
-    var transVal = 0.5;
+    var transVal = 0.0;
     context.translate(transVal, transVal);
 
     //loop over styles (to get correct order of layers)
@@ -111,7 +115,7 @@ VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, request
 
         //current style not in layers
         if (!(jStyle["source-layer"] in tile.layers)) continue;
-        
+
         //get layer based on style
         var layer = tile.layers[jStyle["source-layer"]];
 
@@ -150,6 +154,7 @@ VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, request
         var textMaxWidth = getLayoutValue(jStyle, nativeTile.level, "text-max-width");
         var textPadding = getLayoutValue(jStyle, nativeTile.level, "text-padding");
         var textLineHeight = getLayoutValue(jStyle, nativeTile.level, "text-line-height");
+        
         var textField = getLayoutValue(jStyle, nativeTile.level, "text-field");
         var textOptional = getLayoutValue(jStyle, nativeTile.level, "text-optional");
         var textOffset = getLayoutValue(jStyle, nativeTile.level, "text-offset");
@@ -195,7 +200,7 @@ VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, request
         if (defined(textField)) {
             //if ("layout" in jStyle && "symbol-placement" in jStyle.layout && jStyle.layout["symbol-placement"] === "line") return;
             textField = textField.replace("{", "");
-            textField = textField.replace("}", "");            
+            textField = textField.replace("}", "");
             //TODO: these may override colours for lines/fills!
             context.fillStyle = textColor;
             context.strokeStyle = textColor;
@@ -231,9 +236,9 @@ VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, request
                 continue;
             }
 
-            
+
             context.translate(transVal, transVal);
-            
+
             switch (jStyle.type) {
                 case "fill":
                     drawPath(context, extentFactor, coordinates);
@@ -249,7 +254,6 @@ VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, request
                     context.globalAlpha = 1.0;
                     break;
                 case "symbol":
-
                     if (defined(label)) drawSpriteAndText(context, extentFactor, coordinates, label, this._sprites[iconImage])
                     break;
             }
@@ -257,7 +261,7 @@ VectorStyle.prototype.drawTile = function (origCanvas, tile, nativeTile, request
         }
 
     }
-    
+
     origContext.drawImage(canvas, 0, 0, origCanvas.width, origCanvas.height);
 
 };
@@ -309,7 +313,7 @@ function getCoordinates(nativeTile, requestedTile, layer, feature) {
         var x1 = size * (requestedTile.x - (nativeTile.x << levelDelta)); //
         var y1 = size * (requestedTile.y - (nativeTile.y << levelDelta));
         var tileRect = new BoundingRectangle(x1, y1, size, size);
-        extentFactor = canvas.width / size;console.log(extentFactor);
+        extentFactor = canvas.width / size;
         if (
             BoundingRectangle.intersect(featureRect, tileRect) ===
             Intersect.OUTSIDE
@@ -467,14 +471,14 @@ function drawSpriteAndText(context, extentFactor, coordinates, text, image) {
 
 //function used to draw an image on the canvas
 //this must be drawn offscreen in order to maintain alpha transparency
-function drawSprite(context, extentFactor, xPos, yPos, image) {    
+function drawSprite(context, extentFactor, xPos, yPos, image) {
     var offscreen = document.createElement("canvas");
     offscreen.width = image.width;
     offscreen.height = image.height;
     var offCtx = offscreen.getContext('2d'); // an offscreen canvas
 
-    offCtx.globalAlpha = 0.0;
-    offCtx.clearRect(0, 0, image.width, image.height);
+    //offCtx.globalAlpha = 0.0;
+    //offCtx.clearRect(0, 0, image.width, image.height);
     offCtx.putImageData(image, 0, 0);
     //draw on main canvas (putimage will lose alpha)
     context.drawImage(offCtx.canvas, (xPos * extentFactor), (yPos * extentFactor), image.width, image.height);
@@ -513,10 +517,10 @@ VectorStyle.prototype._loadSprites = function (spriteIndexUrl, spriteImgUrl) {
         spriteCanvas.width = image.width;
         spriteCanvas.height = image.height;
         var spriteCtx = spriteCanvas.getContext("2d");
-        spriteCtx.fillStyle = "red";
-        spriteCtx.globalAlpha = 1.0;
+        //spriteCtx.fillStyle = "red";
+        //spriteCtx.globalAlpha = 1.0;
         //spriteCtx.fillRect(0, 0, image.width, image.height);
-        spriteCtx.clearRect(0, 0, image.width, image.height);
+        //spriteCtx.clearRect(0, 0, image.width, image.height);
         spriteCtx.drawImage(image, 0, 0, image.width, image.height);
 
         spriteIndexResource.fetchJson().then(function (spriteIndex) {
