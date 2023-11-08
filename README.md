@@ -36,3 +36,6 @@ A Mapbox Styled Vector Tile plugin for the Cesium map client.  Please note that 
 
 ## Contributing
 Please contact me at robbo.blah@gmail.com
+
+## Update
+Since uploading this source code, there have been 'breaking changes' in the Cesium base code that prevent this prototype code from running.
